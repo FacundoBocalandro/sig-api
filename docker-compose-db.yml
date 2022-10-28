@@ -1,0 +1,15 @@
+version: '3'
+services:
+  db:
+    image: 'postgres'
+    ports:
+      - '5432:5432'
+    environment:
+      PGDATA: /var/pgdata
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'bJyy0bn0IpINGUzkTbc33NP45xjDig0A'
+      POSTGRES_DB: 'sigapi_db'
+    volumes:
+      - 'pgdata:/var/pgdata'
+volumes:
+  pgdata:

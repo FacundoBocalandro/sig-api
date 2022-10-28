@@ -1,25 +1,22 @@
 import { getRepository } from 'typeorm';
 import { Request, Response } from 'express';
-import { User } from '../entity/User';
+import { Pig } from '../entity/Pig';
 import { NotFoundError } from '../common/errorValidation/errors';
 
-// import { streamUpload } from '../utils/mediaUpload';
 
-export class UserController {
-  private userRepository = getRepository(User);
+export class PigController {
+  private pigRepository = getRepository(Pig);
   async all() {
-    return this.userRepository.find();
+    return this.pigRepository.find();
   }
 
   async one(request: Request) {
-    return this.userRepository.findOne(request.params.id);
+    return this.pigRepository.findOne(request.params.id);
   }
 
   async save(request: Request) {
     try {
-      // if uploading a file
-      // const mediaUpload = await streamUpload(request);
-      return this.userRepository.save(request.body);
+      return this.pigRepository.save(request.body);
     } catch (err) {
       throw err;
     }
@@ -28,14 +25,14 @@ export class UserController {
   // using query builder <createQueryBuilder>
   async remove(request: Request, response: Response) {
     try {
-      const data = await this.userRepository
+      const data = await this.pigRepository
         .createQueryBuilder()
         .delete()
-        .from(User)
+        .from(Pig)
         .where('id = :id', { id: request.params.id })
         .execute();
       if (data.affected === 1) {
-        return 'record successfully deleted';
+        return 'Record successfully deleted';
       } else {
         throw new NotFoundError();
       }

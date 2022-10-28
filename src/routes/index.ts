@@ -1,4 +1,4 @@
-import { UserRoutes } from './users';
+import { PigRoutes } from './pigs';
 
 export interface RouteInterface {
   method: string;
@@ -6,4 +6,4 @@ export interface RouteInterface {
   action: string;
   uploadType?: any;
 }
-export const Routes = [...UserRoutes];
+export const Routes = [...PigRoutes];
