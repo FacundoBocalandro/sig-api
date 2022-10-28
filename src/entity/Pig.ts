@@ -1,26 +1,19 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-enum PigStatus {
-  Weaned = "Weaned",
-  Pregnant = "Pregnant",
-  Empty = "Empty"
-}
-
 @Entity()
 export class Pig {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({nullable: false})
   pigId: string;
 
-  @Column()
-  birthDate: Date;
+  @Column({nullable: false})
+  age: number;
 
-  @Column({
-    type: 'enum',
-    enum: PigStatus,
-    nullable: true,
-  })
-  status: PigStatus;
+  @Column({nullable: false})
+  genetics: string;
+
+  @Column({nullable: true})
+  fatherId: string;
 }
