@@ -66,8 +66,8 @@
   },
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build:start": "NODE_ENV=development npx ts-node build/src/index.js",
-    "build": "npx tsc --project ./",
+    "build": "npx tsc -t es2015 --project ./",
+    "build:start": "NODE_ENV=production ts-node --transpile-only build/src/index.js",
     "dev:win": "set NODE_ENV=development && nodemon",
     "dev": "NODE_ENV=development nodemon start",
     "test": "set NODE_ENV=test && mocha --watch --require ts-node/register",

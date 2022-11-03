@@ -1,7 +1,8 @@
-export interface userInterface {
+export interface pigInterface {
   id: string;
   pigId: string;
-  age: number;
+  birthDate: Date;
   genetics: string;
   fatherId: string;
+  userId: string;
 }

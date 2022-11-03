@@ -9,6 +9,7 @@ import { errorHandler } from './common/errorValidation/error';
 import { NotFoundError } from './common/errorValidation/errors';
 import { validationRules } from './common/validations';
 import { validateRequest } from './common/validations/validateRequest';
+import { validateToken } from './common/validations/validateToken';
 
 const fileUpload = multer();
 
@@ -23,6 +24,10 @@ export function initMiddleWare(app): void {
       route.route,
       validationRules(route.action), // validate the request params using the validationRules based on action string
       validateRequest,
+      (req: Request, res: Response, next) => {
+        if (route.auth) validateToken(req, res, next);
+        else next();
+      },
       route?.uploadType || fileUpload.none(),
       (req: Request, res: Response, next) => {
         const result = new route.controller()[route.action](req, res, next);

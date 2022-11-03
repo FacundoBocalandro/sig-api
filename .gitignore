@@ -7,3 +7,7 @@ temp/
 log/
 
 *.env
+
+firebaseServiceAccount.json
+ormconfig.docker.json
+ormconfig.json

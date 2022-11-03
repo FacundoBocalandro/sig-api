@@ -6,12 +6,16 @@ import { NotFoundError } from '../common/errorValidation/errors';
 
 export class PigController {
   private pigRepository = getRepository(Pig);
-  async all() {
-    return this.pigRepository.find();
+  async all(request: Request) {
+    return this.pigRepository.find({where: {
+        userId: request.body.userId
+      }});
   }
 
   async one(request: Request) {
-    return this.pigRepository.findOne(request.params.id);
+    return this.pigRepository.findOne(request.params.id, {where: {
+        userId: request.body.userId
+      }});
   }
 
   async save(request: Request) {
@@ -29,7 +33,7 @@ export class PigController {
         .createQueryBuilder()
         .delete()
         .from(Pig)
-        .where('id = :id', { id: request.params.id })
+        .where('id = :id & userId = :userId', { id: request.params.id, userId: request.body.userId })
         .execute();
       if (data.affected === 1) {
         return 'Record successfully deleted';
