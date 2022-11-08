@@ -1,11 +1,15 @@
 import { getRepository } from 'typeorm';
 import { Request, Response } from 'express';
-import { Pig } from '../entity/Pig';
+import { Pig, PigStatus } from '../entity/Pig';
 import { NotFoundError } from '../common/errorValidation/errors';
+import { Cycle, CycleStatus } from '../entity/Cycle';
+import { isInLastYear } from '../utils/dates';
 
 
 export class PigController {
   private pigRepository = getRepository(Pig);
+  private cycleRepository = getRepository(Cycle);
+
   async all(request: Request) {
     return this.pigRepository.find({where: {
         userId: request.body.userId
@@ -13,9 +17,31 @@ export class PigController {
   }
 
   async one(request: Request) {
-    return this.pigRepository.findOne(request.params.id, {where: {
+    const pig = await this.pigRepository.findOne(request.params.id, {where: {
         userId: request.body.userId
       }});
+
+    if (!pig) throw new NotFoundError();
+
+    const cycles = await this.cycleRepository.find({where: {
+        pig: request.params.id
+      }})
+
+    const bornPerYear = cycles.reduce((previousValue, currentCycle) => {
+      if (currentCycle.cycleStatus === CycleStatus.CLOSED && currentCycle.closeDate && isInLastYear(currentCycle.closeDate)) {
+        return previousValue + currentCycle.liveBirths;
+      }
+      return previousValue;
+    }, 0)
+
+    const weanedPerYear = cycles.reduce((previousValue, currentCycle) => {
+      if (currentCycle.cycleStatus === CycleStatus.CLOSED && currentCycle.closeDate && isInLastYear(currentCycle.closeDate)) {
+        return previousValue + currentCycle.weaned;
+      }
+      return previousValue;
+    }, 0)
+
+    return {...pig, bornPerYear, weanedPerYear};
   }
 
   async save(request: Request) {
@@ -23,6 +49,20 @@ export class PigController {
       return this.pigRepository.save(request.body);
     } catch (err) {
       throw err;
+    }
+  }
+
+  async discard(request: Request) {
+    const pig = this.pigRepository.findOne(request.params.id, {where: {
+        userId: request.body.userId,
+      }});
+
+    if (!pig) throw new NotFoundError();
+
+    try {
+      return this.pigRepository.update(request.params.id, {pigStatus: PigStatus.DISCARDED});
+    } catch (e) {
+      throw e;
     }
   }
 

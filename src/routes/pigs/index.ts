@@ -28,6 +28,13 @@ export const PigRoutes: PigRoutesInterface[] = [
     auth: true
   },
   {
+    method: 'put',
+    route: '/pigs/discard/:id',
+    controller: PigController,
+    action: 'discard',
+    auth: true
+  },
+  {
     method: 'delete',
     route: '/pigs/:id',
     controller: PigController,

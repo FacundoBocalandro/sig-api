@@ -1,4 +1,6 @@
 import { PigRoutes } from './pigs';
+import { CycleRoutes } from './cycles';
+import { DashboardRoutes } from './dashboard';
 
 export interface RouteInterface {
   method: string;
@@ -7,4 +9,4 @@ export interface RouteInterface {
   auth?: boolean;
   uploadType?: any;
 }
-export const Routes = [...PigRoutes];
+export const Routes = [...PigRoutes, ...CycleRoutes, ...DashboardRoutes];

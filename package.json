@@ -5,7 +5,6 @@
     "npm": ">=6.14.11"
   },
   "author": "Facundo Bocalandro",
-  "license": "MIT",
   "name": "sig-api",
   "description": "SIG API",
   "keywords": [
