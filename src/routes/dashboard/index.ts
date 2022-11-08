@@ -13,4 +13,18 @@ export const DashboardRoutes: DashboardRoutesInterface[] = [
     action: 'stats',
     auth: true
   },
+  {
+    method: 'get',
+    route: '/dashboard/objectives',
+    controller: DashboardController,
+    action: 'objectives',
+    auth: true
+  },
+  {
+    method: 'put',
+    route: '/dashboard/objectives/:id',
+    controller: DashboardController,
+    action: 'changeObjectives',
+    auth: true
+  },
 ];

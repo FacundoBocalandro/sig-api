@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { Cycle, CycleStatus } from '../entity/Cycle';
 import { Pig, PigStatus } from '../entity/Pig';
 import { isBetweenDates } from '../utils/dates';
+import { KPIObjective } from '../entity/KPIObjective';
 
 type Stats = {
   weeklyServices: number;
@@ -55,29 +56,42 @@ const initialStats: Stats[] = Array(10).fill({
   weeklyWeanedPerBirth: 0,
   weeklyDeathRate: 0,
   weeklyBirthWeight: 0,
-  weeklyWeanedWeight: 0
-})
+  weeklyWeanedWeight: 0,
+});
 
 export class DashboardController {
   private pigRepository = getRepository(Pig);
+  private KPIObjectiveRepository = getRepository(KPIObjective);
+
+  async objectives(request: Request) {
+    const KPIObjective = await this.KPIObjectiveRepository.findOne({where: {userId: request.body.userId}});
+    if (!KPIObjective) {
+      return this.KPIObjectiveRepository.save({userId: request.body.userId});
+    }
+    return KPIObjective;
+  }
+
+  async changeObjectives(request: Request) {
+    return this.KPIObjectiveRepository.update(request.params.id, {...request.body});
+  }
 
   async stats(request: Request) {
     const cycles = await this.pigRepository
       .createQueryBuilder('pig')
-      .innerJoinAndSelect("pig.cycles", "cycle")
-      .where("pig.userId = :id", { id: request.body.userId })
+      .innerJoinAndSelect('pig.cycles', 'cycle')
+      .where('pig.userId = :id', { id: request.body.userId })
       .execute();
 
     const stats = [...initialStats];
     return stats.map((weeklyStats: Stats, i: number) => {
       const initialDate = new Date();
-      initialDate.setDate(initialDate.getDate() - 7*(i+1));
-      initialDate.setDate(initialDate.getDate() - initialDate.getDay())
-      initialDate.setHours(0,0,0);
+      initialDate.setDate(initialDate.getDate() - 7 * (i + 1));
+      initialDate.setDate(initialDate.getDate() - initialDate.getDay());
+      initialDate.setHours(0, 0, 0);
       const endDate = new Date();
-      endDate.setDate(endDate.getDate() - 7*(i+1));
+      endDate.setDate(endDate.getDate() - 7 * (i + 1));
       endDate.setDate(endDate.getDate() + 6 - endDate.getDay());
-      endDate.setHours(23,59,59);
+      endDate.setHours(23, 59, 59);
       const weeklyServices = DashboardController.getWeeklyServices(cycles, initialDate, endDate);
       const pregnancyPercentage = DashboardController.getPregnancyPercentage(cycles, initialDate, endDate);
       const birthPerServicesPercentage = DashboardController.getBirthPerServicesPercentage(cycles, initialDate, endDate);
@@ -87,8 +101,12 @@ export class DashboardController {
       const weeklyDeathRate = DashboardController.getWeeklyDeathRate(cycles, initialDate, endDate);
       const weeklyBirthWeight = DashboardController.getWeeklyBirthWeight(cycles, initialDate, endDate);
       const weeklyWeanedWeight = DashboardController.getWeeklyWeanedWeight(cycles, initialDate, endDate);
-      return {weeklyServices, pregnancyPercentage, birthPerServicesPercentage, birthPerPregnancyPercentage, weeklyLivePigsPerBirth, weeklyWeanedPerBirth, weeklyDeathRate, weeklyBirthWeight, weeklyWeanedWeight};
-    })
+      return {
+        weeklyServices, pregnancyPercentage, birthPerServicesPercentage, birthPerPregnancyPercentage,
+        weeklyLivePigsPerBirth, weeklyWeanedPerBirth, weeklyDeathRate,
+        weeklyBirthWeight, weeklyWeanedWeight, initialDate, endDate,
+      };
+    });
   }
 
   private static getWeeklyServices(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
@@ -106,7 +124,7 @@ export class DashboardController {
         return previousValue + 1;
       }
       return previousValue;
-    }, 0)
+    }, 0);
   }
 
   private static getWeeklyBirth(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
@@ -115,7 +133,7 @@ export class DashboardController {
         return previousValue + 1;
       }
       return previousValue;
-    }, 0)
+    }, 0);
   }
 
   private static getWeeklyLivePigs(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
@@ -124,7 +142,7 @@ export class DashboardController {
         return previousValue + cycle.cycle_liveBirths;
       }
       return previousValue;
-    }, 0)
+    }, 0);
   }
 
   private static getWeeklyWeaned(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
@@ -133,7 +151,7 @@ export class DashboardController {
         return previousValue + cycle.cycle_weaned;
       }
       return previousValue;
-    }, 0)
+    }, 0);
   }
 
   private static getWeeklyPigletLossesAfterBirth(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
@@ -142,11 +160,11 @@ export class DashboardController {
         return previousValue + cycle.cycle_pigletLossesAfterBirth;
       }
       return previousValue;
-    }, 0)
+    }, 0);
   }
 
   private static getPregnancyPercentage(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
-   const pregnantPigs = this.getWeeklyPregnant(cycles, initialDate, endDate);
+    const pregnantPigs = this.getWeeklyPregnant(cycles, initialDate, endDate);
     const newInitialDate = new Date();
     newInitialDate.setDate(initialDate.getDate() - 30);
     const newEndDate = new Date();
@@ -205,7 +223,7 @@ export class DashboardController {
         return [previousValue[0] + (cycle.cycle_averageBirthWeight * cycle.cycle_liveBirths), previousValue[0] + cycle.cycle_liveBirths];
       }
       return previousValue;
-    }, [0,0])
+    }, [0, 0]);
 
     if (!weeklyBirthWeight[1]) return 0;
     return weeklyBirthWeight[0] / weeklyBirthWeight[1];
@@ -217,7 +235,7 @@ export class DashboardController {
         return [previousValue[0] + (cycle.cycle_averageWeaningWeight * cycle.cycle_weaned), previousValue[0] + cycle.cycle_weaned];
       }
       return previousValue;
-    }, [0,0])
+    }, [0, 0]);
 
     if (!weeklyWeanedWeight[1]) return 0;
     return weeklyWeanedWeight[0] / weeklyWeanedWeight[1];
