@@ -46,8 +46,7 @@ type CyclePigJoin = {
   cycle_pigId: string | null;
 }
 
-
-const initialStats: Stats[] = Array(10).fill({
+const INITIAL_STAT = {
   weeklyServices: 0,
   pregnancyPercentage: 0,
   birthPerServicesPercentage: 0,
@@ -57,22 +56,25 @@ const initialStats: Stats[] = Array(10).fill({
   weeklyDeathRate: 0,
   weeklyBirthWeight: 0,
   weeklyWeanedWeight: 0,
-});
+};
+
+
+const initialStats: Stats[] = Array(10).fill(INITIAL_STAT);
 
 export class DashboardController {
   private pigRepository = getRepository(Pig);
   private KPIObjectiveRepository = getRepository(KPIObjective);
 
   async objectives(request: Request) {
-    const KPIObjective = await this.KPIObjectiveRepository.findOne({where: {userId: request.body.userId}});
+    const KPIObjective = await this.KPIObjectiveRepository.findOne({ where: { userId: request.body.userId } });
     if (!KPIObjective) {
-      return this.KPIObjectiveRepository.save({userId: request.body.userId});
+      return this.KPIObjectiveRepository.save({ userId: request.body.userId });
     }
     return KPIObjective;
   }
 
   async changeObjectives(request: Request) {
-    return this.KPIObjectiveRepository.update(request.params.id, {...request.body});
+    return this.KPIObjectiveRepository.update(request.params.id, { ...request.body });
   }
 
   async stats(request: Request) {
@@ -82,8 +84,7 @@ export class DashboardController {
       .where('pig.userId = :id', { id: request.body.userId })
       .execute();
 
-    const stats = [...initialStats];
-    return stats.map((weeklyStats: Stats, i: number) => {
+    const statsPerWeek = initialStats.map((weeklyStats: Stats, i: number) => {
       const initialDate = new Date();
       initialDate.setDate(initialDate.getDate() - 7 * (i + 1));
       initialDate.setDate(initialDate.getDate() - initialDate.getDay());
@@ -107,6 +108,26 @@ export class DashboardController {
         weeklyBirthWeight, weeklyWeanedWeight, initialDate, endDate,
       };
     });
+
+    const totals = statsPerWeek.reduce((previousValue, weeklyStat) => {
+      return {
+        weeklyServices: previousValue.weeklyServices + weeklyStat.weeklyServices,
+        pregnancyPercentage: previousValue.pregnancyPercentage + weeklyStat.pregnancyPercentage,
+        birthPerServicesPercentage: previousValue.birthPerServicesPercentage + weeklyStat.birthPerServicesPercentage,
+        birthPerPregnancyPercentage: previousValue.birthPerPregnancyPercentage + weeklyStat.birthPerPregnancyPercentage,
+        weeklyLivePigsPerBirth: previousValue.weeklyLivePigsPerBirth + weeklyStat.weeklyLivePigsPerBirth,
+        weeklyWeanedPerBirth: previousValue.weeklyWeanedPerBirth + weeklyStat.weeklyWeanedPerBirth,
+        weeklyDeathRate: previousValue.weeklyDeathRate + weeklyStat.weeklyDeathRate,
+        weeklyBirthWeight: previousValue.weeklyBirthWeight + weeklyStat.weeklyBirthWeight,
+        weeklyWeanedWeight: previousValue.weeklyWeanedWeight + weeklyStat.weeklyWeanedWeight,
+      }
+    }, {...INITIAL_STAT});
+
+    const average = Object.keys(totals).reduce((previousValue, key) => {
+      return {...previousValue, [key]: totals[key] / statsPerWeek.length}
+    }, {})
+
+    return {statsPerWeek, average};
   }
 
   private static getWeeklyServices(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
