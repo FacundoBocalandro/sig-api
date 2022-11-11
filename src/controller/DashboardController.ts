@@ -1,9 +1,10 @@
 import { getRepository } from 'typeorm';
 import { Request } from 'express';
-import { Cycle, CycleStatus } from '../entity/Cycle';
+import { CycleStatus } from '../entity/Cycle';
 import { Pig, PigStatus } from '../entity/Pig';
 import { isBetweenDates } from '../utils/dates';
 import { KPIObjective } from '../entity/KPIObjective';
+import { endOfWeek, startOfWeek, subDays } from 'date-fns';
 
 type Stats = {
   weeklyServices: number;
@@ -85,14 +86,9 @@ export class DashboardController {
       .execute();
 
     const statsPerWeek = initialStats.map((weeklyStats: Stats, i: number) => {
-      const initialDate = new Date();
-      initialDate.setDate(initialDate.getDate() - 7 * (i + 1));
-      initialDate.setDate(initialDate.getDate() - initialDate.getDay());
-      initialDate.setHours(0, 0, 0);
-      const endDate = new Date();
-      endDate.setDate(endDate.getDate() - 7 * (i + 1));
-      endDate.setDate(endDate.getDate() + 6 - endDate.getDay());
-      endDate.setHours(23, 59, 59);
+      const initialDate = startOfWeek(subDays(new Date(), 7 * (i + 1)));
+      const endDate = endOfWeek(subDays(new Date(), 7 * (i + 1)));
+
       const weeklyServices = DashboardController.getWeeklyServices(cycles, initialDate, endDate);
       const pregnancyPercentage = DashboardController.getPregnancyPercentage(cycles, initialDate, endDate);
       const birthPerServicesPercentage = DashboardController.getBirthPerServicesPercentage(cycles, initialDate, endDate);
@@ -130,9 +126,9 @@ export class DashboardController {
     return {statsPerWeek, average};
   }
 
-  private static getWeeklyServices(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
+  private static getWeeklyServices(cycles: CyclePigJoin[], initialDate: Date, endDate: Date): number {
     return cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && isBetweenDates(cycle.cycle_created_at, initialDate, endDate)) {
+      if (isBetweenDates(cycle.cycle_created_at, initialDate, endDate)) {
         return previousValue + 1;
       }
       return previousValue;
@@ -141,7 +137,7 @@ export class DashboardController {
 
   private static getWeeklyPregnant(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     return cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_pregnancyDate && isBetweenDates(cycle.cycle_pregnancyDate, initialDate, endDate)) {
+      if (cycle.cycle_pregnancyDate && isBetweenDates(cycle.cycle_pregnancyDate, initialDate, endDate)) {
         return previousValue + 1;
       }
       return previousValue;
@@ -150,7 +146,7 @@ export class DashboardController {
 
   private static getWeeklyBirth(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     return cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate)) {
+      if (cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate)) {
         return previousValue + 1;
       }
       return previousValue;
@@ -159,7 +155,7 @@ export class DashboardController {
 
   private static getWeeklyLivePigs(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     return cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_liveBirths) {
+      if (cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_liveBirths) {
         return previousValue + cycle.cycle_liveBirths;
       }
       return previousValue;
@@ -168,7 +164,7 @@ export class DashboardController {
 
   private static getWeeklyWeaned(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     return cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_weaned) {
+      if (cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_weaned) {
         return previousValue + cycle.cycle_weaned;
       }
       return previousValue;
@@ -177,7 +173,7 @@ export class DashboardController {
 
   private static getWeeklyPigletLossesAfterBirth(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     return cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_pigletLossesAfterBirth) {
+      if (cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_pigletLossesAfterBirth) {
         return previousValue + cycle.cycle_pigletLossesAfterBirth;
       }
       return previousValue;
@@ -186,10 +182,8 @@ export class DashboardController {
 
   private static getPregnancyPercentage(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     const pregnantPigs = this.getWeeklyPregnant(cycles, initialDate, endDate);
-    const newInitialDate = new Date();
-    newInitialDate.setDate(initialDate.getDate() - 30);
-    const newEndDate = new Date();
-    newEndDate.setDate(endDate.getDate() - 30);
+    const newInitialDate = subDays(initialDate, 30);
+    const newEndDate = subDays(endDate, 30);
     const weeklyServices = this.getWeeklyServices(cycles, newInitialDate, newEndDate);
     if (!weeklyServices) return 0;
     return pregnantPigs / weeklyServices;
@@ -197,10 +191,8 @@ export class DashboardController {
 
   private static getBirthPerServicesPercentage(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     const weeklyBirth = this.getWeeklyBirth(cycles, initialDate, endDate);
-    const newInitialDate = new Date();
-    newInitialDate.setDate(initialDate.getDate() - 114);
-    const newEndDate = new Date();
-    newEndDate.setDate(endDate.getDate() - 114);
+    const newInitialDate = subDays(initialDate, 114);
+    const newEndDate = subDays(endDate, 114);
     const weeklyServices = this.getWeeklyServices(cycles, newInitialDate, newEndDate);
     if (!weeklyServices) return 0;
     return weeklyBirth / weeklyServices;
@@ -208,10 +200,8 @@ export class DashboardController {
 
   private static getBirthPerPregnancyPercentage(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     const weeklyBirth = this.getWeeklyBirth(cycles, initialDate, endDate);
-    const newInitialDate = new Date();
-    newInitialDate.setDate(initialDate.getDate() - 84);
-    const newEndDate = new Date();
-    newEndDate.setDate(endDate.getDate() - 84);
+    const newInitialDate = subDays(initialDate, 84);
+    const newEndDate = subDays(endDate, 84);
     const weeklyPregnant = this.getWeeklyPregnant(cycles, newInitialDate, newEndDate);
     if (!weeklyPregnant) return 0;
     return weeklyBirth / weeklyPregnant;
@@ -233,14 +223,14 @@ export class DashboardController {
 
   private static getWeeklyDeathRate(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     const weeklyPigletLossesAfterBirth = this.getWeeklyPigletLossesAfterBirth(cycles, initialDate, endDate);
-    const weeklyBirth = this.getWeeklyBirth(cycles, initialDate, endDate);
+    const weeklyBirth = this.getWeeklyLivePigs(cycles, initialDate, endDate);
     if (!weeklyBirth) return 0;
     return weeklyPigletLossesAfterBirth / weeklyBirth;
   }
 
   private static getWeeklyBirthWeight(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     const weeklyBirthWeight = cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_averageBirthWeight && cycle.cycle_liveBirths) {
+      if (cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_averageBirthWeight && cycle.cycle_liveBirths) {
         return [previousValue[0] + (cycle.cycle_averageBirthWeight * cycle.cycle_liveBirths), previousValue[0] + cycle.cycle_liveBirths];
       }
       return previousValue;
@@ -252,12 +242,11 @@ export class DashboardController {
 
   private static getWeeklyWeanedWeight(cycles: CyclePigJoin[], initialDate: Date, endDate: Date) {
     const weeklyWeanedWeight = cycles.reduce((previousValue, cycle) => {
-      if (cycle.cycle_cycleStatus === CycleStatus.CLOSED && cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_averageWeaningWeight && cycle.cycle_weaned) {
+      if (cycle.cycle_birthDate && isBetweenDates(cycle.cycle_birthDate, initialDate, endDate) && cycle.cycle_averageWeaningWeight && cycle.cycle_weaned) {
         return [previousValue[0] + (cycle.cycle_averageWeaningWeight * cycle.cycle_weaned), previousValue[0] + cycle.cycle_weaned];
       }
       return previousValue;
     }, [0, 0]);
-
     if (!weeklyWeanedWeight[1]) return 0;
     return weeklyWeanedWeight[0] / weeklyWeanedWeight[1];
   }
