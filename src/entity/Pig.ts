@@ -5,6 +5,7 @@ export enum PigStatus {
   CUB = "CUB",
   IN_CYCLE = "IN_CYCLE",
   PREGNANT = "PREGNANT",
+  IN_BIRTH = "IN_BIRTH",
   RECENT_BIRTH = "RECENT_BIRTH",
   DISCARDED = "DISCARDED"
 }

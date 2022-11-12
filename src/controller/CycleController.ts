@@ -68,8 +68,8 @@ export class CycleController {
         }
         break;
       case CycleStatus.BIRTH_CONFIRMED:
-        if (pig.pigStatus !== PigStatus.PREGNANT) {
-          return this.pigRepository.update(pig.id, {pigStatus: PigStatus.PREGNANT});
+        if (pig.pigStatus !== PigStatus.IN_BIRTH) {
+          return this.pigRepository.update(pig.id, {pigStatus: PigStatus.IN_BIRTH});
         }
         break;
       case CycleStatus.CLOSED:

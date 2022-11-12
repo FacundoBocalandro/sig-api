@@ -1,6 +1,6 @@
-# fly.toml file generated for sig-api-seguimiento on 2022-11-03T01:00:20-03:00
+# fly.toml file generated for sig-api-cerdas on 2022-11-11T11:58:43-03:00
 
-app = "sig-api-seguimiento"
+app = "sig-api-cerdas"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
